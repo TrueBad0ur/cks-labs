@@ -1,0 +1,25 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: network-policy-6-2
+  namespace: np-6-gateway
+spec:
+  podSelector:
+    matchLabels:
+      app: gateway-v2
+  policyTypes:
+  - Egress
+  egress:
+    - ports:
+      - port: 53
+        protocol: UDP
+      - port: 53
+        protocol: TCP
+    - to:
+      - namespaceSelector:
+          matchLabels:
+            kubernetes.io/metadata.name: np-6-backend   
+      ports:
+      - protocol: TCP
+        port: 9090
+      

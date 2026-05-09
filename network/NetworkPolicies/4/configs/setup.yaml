@@ -1,0 +1,138 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: np-4-backend
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: np-4-clients
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: np-4-other
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: np-4-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: api
+  template:
+    metadata:
+      labels:
+        app: api
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  namespace: np-4-backend
+spec:
+  selector:
+    app: api
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trusted-client
+  namespace: np-4-clients
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trusted-client
+      role: trusted
+  template:
+    metadata:
+      labels:
+        app: trusted-client
+        role: trusted
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              while true; do
+                echo -n "[clients/trusted->api] "
+                curl -s --max-time 3 http://api.np-4-backend.svc.cluster.local && echo "OK" || echo "FAIL/TIMEOUT"
+                sleep 3
+              done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rogue-client
+  namespace: np-4-clients
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: rogue-client
+      role: rogue
+  template:
+    metadata:
+      labels:
+        app: rogue-client
+        role: rogue
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              while true; do
+                echo -n "[clients/rogue->api] "
+                curl -s --max-time 3 http://api.np-4-backend.svc.cluster.local && echo "OK" || echo "FAIL/TIMEOUT"
+                sleep 3
+              done
+---
+# spy: correct label role=trusted, but in a different namespace
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spy
+  namespace: np-4-other
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spy
+      role: trusted
+  template:
+    metadata:
+      labels:
+        app: spy
+        role: trusted
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              while true; do
+                echo -n "[other/spy(role=trusted)->api] "
+                curl -s --max-time 3 http://api.np-4-backend.svc.cluster.local && echo "OK" || echo "FAIL/TIMEOUT"
+                sleep 3
+              done
