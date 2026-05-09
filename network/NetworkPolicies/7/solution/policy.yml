@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: network-policy-7
+  namespace: np-7
+spec:
+
+  podSelector:
+    matchLabels:
+      app: processor
+
+  policyTypes:
+  - Egress
+  - Ingress
+
+  ingress:
+  - ports:
+    - protocol: TCP
+      port: 8080
+    from:
+    - podSelector:
+        matchLabels:
+          app: producer
+
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: consumer
+    ports:
+    - protocol: TCP
+      port: 9090
+  - ports:
+    - protocol: TCP
+      port: 53
+    - protocol: UDP
+      port: 53

@@ -1,0 +1,128 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: np-8-frontend
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: np-8-backend
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: np-8-db
+---
+# db: nginx on 5432
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db
+  namespace: np-8-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: db
+  template:
+    metadata:
+      labels:
+        app: db
+    spec:
+      containers:
+        - name: server
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /tmp/www && echo "db" > /tmp/www/index.html
+              busybox httpd -f -p 5432 -h /tmp/www
+          ports:
+            - containerPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+  namespace: np-8-db
+spec:
+  selector:
+    app: db
+  ports:
+    - port: 5432
+      targetPort: 5432
+---
+# backend: nginx on 8080, curls db:5432
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: np-8-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: app
+          image: busybox:latest
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /tmp/www && echo "backend" > /tmp/www/index.html
+              busybox httpd -f -p 8080 -h /tmp/www &
+              while true; do
+                echo -n "[->db:5432] "
+                wget -q -O- --timeout=3 http://db.np-8-db.svc.cluster.local:5432 && echo "OK" || echo "FAIL/TIMEOUT"
+                sleep 4
+              done
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: np-8-backend
+spec:
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+# frontend: curls backend:8080 and db:5432
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: np-8-frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:latest
+          command:
+            - sh
+            - -c
+            - |
+              while true; do
+                echo -n "[->backend:8080] "
+                curl -s --max-time 3 http://backend.np-8-backend.svc.cluster.local:8080 && echo "OK" || echo "FAIL/TIMEOUT"
+                echo -n "[->db:5432]     "
+                curl -s --max-time 3 http://db.np-8-db.svc.cluster.local:5432 && echo "OK" || echo "FAIL/TIMEOUT"
+                sleep 4
+              done
