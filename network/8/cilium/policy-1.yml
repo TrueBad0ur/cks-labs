@@ -1,0 +1,20 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-8-1"
+  namespace: np-8-db
+spec:
+  endpointSelector:
+    matchLabels:
+      app: db
+  egress:
+  - {}
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: np-8-backend
+        app: backend
+    toPorts: 
+    - ports:
+      - port: '5432'
+        protocol: ANY

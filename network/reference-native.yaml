@@ -1,0 +1,117 @@
+# NetworkPolicy Reference (standard Kubernetes)
+
+## Basic structure
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: policy-name
+  namespace: my-namespace
+spec:
+  podSelector:          # which pods this policy applies to
+    matchLabels:
+      app: web
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:               # allowed sources
+    - podSelector:
+        matchLabels:
+          app: frontend
+    ports:              # sibling of from/to, NOT nested inside
+    - protocol: TCP
+      port: 80
+  egress:
+  - to:                 # allowed destinations
+    - podSelector:
+        matchLabels:
+          app: backend
+    ports:
+    - protocol: TCP
+      port: 80
+```
+
+## Deny all ingress / egress
+
+```yaml
+spec:
+  podSelector: {}       # applies to ALL pods in namespace
+  policyTypes:
+  - Ingress             # presence of policyType activates restriction
+                        # empty ingress rules = deny all ingress
+```
+
+## Cross-namespace selection
+
+```yaml
+# AND — pod with label IN specific namespace (one - item)
+from:
+- namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: np-3-trusted
+  podSelector:
+    matchLabels:
+      app: caller
+
+# OR — any pod in namespace OR any pod with label (two - items)
+from:
+- namespaceSelector:
+    matchLabels:
+      kubernetes.io/metadata.name: np-3-trusted
+- podSelector:
+    matchLabels:
+      app: caller
+```
+
+## DNS in egress (always required when restricting egress)
+
+```yaml
+egress:
+- to:
+  - podSelector:
+      matchLabels:
+        app: backend
+  ports:
+  - protocol: TCP
+    port: 80
+- ports:               # separate rule, no to = allow DNS anywhere
+  - protocol: TCP
+    port: 53
+  - protocol: UDP
+    port: 53
+```
+
+## ipBlock
+
+```yaml
+egress:
+- to:
+  - ipBlock:
+      cidr: 10.0.0.0/8
+      except:
+      - 10.0.0.1/32
+  ports:
+  - protocol: TCP
+    port: 443
+```
+
+## matchExpressions
+
+```yaml
+podSelector:
+  matchExpressions:
+  - key: role
+    operator: In
+    values: [trusted, admin]
+```
+
+## Port range
+
+```yaml
+ports:
+- protocol: TCP
+  port: 8000
+  endPort: 9000
+```

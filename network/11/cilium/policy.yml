@@ -1,0 +1,47 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-11-1"
+  namespace: np-11-a
+spec:
+  endpointSelector:
+    matchLabels:
+      app: service-a
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: service-b
+        k8s:io.kubernetes.pod.namespace: np-11-b
+  egress:
+    - toEndpoints:
+      - matchLabels:
+          app: service-b
+          k8s:io.kubernetes.pod.namespace: np-11-b
+    - toPorts:
+        - ports:
+           - port: "53"
+             protocol: ANY
+---
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-11-2"
+  namespace: np-11-b
+spec:
+  endpointSelector:
+    matchLabels:
+      app: service-b
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: service-a
+        k8s:io.kubernetes.pod.namespace: np-11-a
+  egress:
+    - toEndpoints:
+      - matchLabels:
+          app: service-a
+          k8s:io.kubernetes.pod.namespace: np-11-a
+    - toPorts:
+        - ports:
+           - port: "53"
+             protocol: ANY

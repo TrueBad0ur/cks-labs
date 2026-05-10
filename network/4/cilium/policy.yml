@@ -1,0 +1,14 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-4"
+  namespace: np-4-backend
+spec:
+  endpointSelector:
+    matchLabels:
+      app: api
+  ingress:
+  - fromEndpoints:
+      - matchLabels:
+          role: trusted
+          k8s:io.kubernetes.pod.namespace: np-4-clients

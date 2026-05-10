@@ -1,0 +1,17 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-2"
+  namespace: np-2
+spec:
+  endpointSelector:
+    matchLabels:
+      app: backend
+  ingress:
+  - fromEndpoints:
+      - matchLabels:
+          app: frontend
+    toPorts:
+      - ports:
+          - port: "80"
+            protocol: ANY

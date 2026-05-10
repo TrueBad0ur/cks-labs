@@ -1,0 +1,140 @@
+# CiliumNetworkPolicy Reference
+
+## Key differences from standard NetworkPolicy
+
+| Standard NetworkPolicy         | CiliumNetworkPolicy                                      |
+|-------------------------------|----------------------------------------------------------|
+| podSelector                   | endpointSelector                                         |
+| from: [podSelector]           | fromEndpoints: [{matchLabels: {...}}]                   |
+| to: [podSelector]             | toEndpoints: [{matchLabels: {...}}]                     |
+| ports: [{port: 80}]           | toPorts: [{ports: [{port: "80"}]}]                     |
+| namespaceSelector             | k8s:io.kubernetes.pod.namespace in matchLabels           |
+| no L7                         | toPorts with http rules                                  |
+| explicit port 53 for DNS      | same — explicit port 53 or toEntities: ["cluster"]      |
+
+## Basic structure
+
+```yaml
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: policy-name
+  namespace: my-namespace
+spec:
+  endpointSelector:       # which pods this policy applies to
+    matchLabels:
+      app: web
+  ingress:
+  - fromEndpoints:        # allowed sources
+    - matchLabels:
+        app: frontend
+    toPorts:              # allowed ports — sibling of fromEndpoints, not nested inside
+    - ports:
+      - port: "80"
+        protocol: TCP
+  egress:
+  - toEndpoints:          # allowed destinations
+    - matchLabels:
+        app: backend
+    toPorts:
+    - ports:
+      - port: "80"
+        protocol: TCP
+```
+
+## Deny all ingress / egress
+
+```yaml
+spec:
+  endpointSelector:
+    matchLabels:
+      app: db
+  ingress: []    # empty list = deny all ingress
+  egress: []     # empty list = deny all egress
+```
+
+## Cross-namespace selection
+
+```yaml
+# Allow from pods with app=caller in namespace np-3-trusted
+fromEndpoints:
+- matchLabels:
+    k8s:io.kubernetes.pod.namespace: np-3-trusted
+    app: caller
+```
+
+`k8s:io.kubernetes.pod.namespace` is automatically added by Cilium to every endpoint.
+
+## AND vs OR
+
+```yaml
+# AND — one entry with multiple labels
+fromEndpoints:
+- matchLabels:
+    k8s:io.kubernetes.pod.namespace: np-4-clients
+    role: trusted
+
+# OR — two separate entries
+fromEndpoints:
+- matchLabels:
+    k8s:io.kubernetes.pod.namespace: np-4-clients
+- matchLabels:
+    role: trusted
+```
+
+## Entities
+
+```yaml
+egress:
+- toEntities:
+  - cluster    # all pods in the cluster
+  - world      # external (outside cluster)
+  - host       # the node itself
+```
+
+## DNS
+
+```yaml
+egress:
+- toPorts:
+  - ports:
+    - port: "53"
+      protocol: UDP
+    - port: "53"
+      protocol: TCP
+```
+
+## DNS with FQDN matching
+
+```yaml
+egress:
+- toFQDNs:
+  - matchName: "api.example.com"
+  toPorts:
+  - ports:
+    - port: "443"
+      protocol: TCP
+- toPorts:
+  - ports:
+    - port: "53"
+      protocol: UDP
+    - port: "53"
+      protocol: TCP
+```
+
+## L7 HTTP rules
+
+```yaml
+ingress:
+- fromEndpoints:
+  - matchLabels:
+      app: frontend
+  toPorts:
+  - ports:
+    - port: "80"
+      protocol: TCP
+    rules:
+      http:
+      - method: GET
+        path: "/api/.*"
+```

@@ -1,0 +1,26 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-6"
+  namespace: np-6-backend
+spec:
+  endpointSelector:
+    matchLabels:
+      app: api
+  ingress:
+  - fromEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: np-6-gateway
+          app: gateway-v1
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: ANY
+  - fromEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: np-6-gateway
+          app: gateway-v2
+    toPorts:
+    - ports:
+      - port: '9090'
+        protocol: ANY

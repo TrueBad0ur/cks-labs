@@ -1,0 +1,11 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-9-1"
+  namespace: np-9
+spec:
+  endpointSelector: {}
+  egress:
+  - {}
+  ingress:
+  - {}

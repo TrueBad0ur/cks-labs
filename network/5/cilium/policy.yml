@@ -1,0 +1,17 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-5"
+  namespace: np-5-worker
+spec:
+  endpointSelector:
+    matchLabels:
+      app: worker
+  egress:
+  - toEndpoints:
+      - matchLabels:
+          k8s:io.kubernetes.pod.namespace: np-5-allowed
+  - toPorts:
+      - ports:
+          - port: "53"
+            protocol: ANY

@@ -1,0 +1,30 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-7"
+  namespace: np-7
+spec:
+  endpointSelector:
+    matchLabels:
+      app: processor
+  ingress:
+  - fromEndpoints:
+      - matchLabels:
+          app: producer
+    toPorts:
+    - ports:
+      - port: '8080'
+        protocol: ANY
+
+  egress:
+  - toEndpoints:
+      - matchLabels:
+          app: consumer
+    toPorts:
+    - ports:
+      - port: '9090'
+        protocol: ANY
+  - toPorts:
+    - ports:
+      - port: '53'
+        protocol: ANY

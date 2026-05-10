@@ -1,0 +1,11 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-1"
+  namespace: np-1
+spec:
+  endpointSelector:
+    matchLabels:
+      app: web
+  ingress:
+  - {}

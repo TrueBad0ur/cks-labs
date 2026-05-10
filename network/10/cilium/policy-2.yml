@@ -1,0 +1,18 @@
+apiVersion: "cilium.io/v2"
+kind: CiliumNetworkPolicy
+metadata:
+  name: "cilium-policy-10-2"
+  namespace: np-10-internal
+spec:
+  endpointSelector:
+    matchLabels:
+      role: trusted
+  ingress:
+  - fromEndpoints:
+    - matchLabels:
+        app: app
+        k8s:io.kubernetes.pod.namespace: np-10-app
+    toPorts:
+      - ports:
+        - port: "9090"
+          protocol: ANY
